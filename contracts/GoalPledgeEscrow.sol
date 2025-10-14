@@ -17,9 +17,10 @@ contract GoalPledgeEscrow {
         bool completed;
         uint64 createdAt;
         bool claimed;
+        string description;
     }
 
-    event GoalCreated(uint256 indexed goalId, address indexed owner, uint256 amount, uint64 deadline);
+    event GoalCreated(uint256 indexed goalId, address indexed owner, uint256 amount, uint64 deadline, string description);
     event GoalCompleted(uint256 indexed goalId);
     event StakeClaimed(uint256 indexed goalId, address indexed owner, uint256 amount);
     event StakeForfeited(uint256 indexed goalId, address indexed treasury, uint256 amount);
@@ -59,9 +60,10 @@ contract GoalPledgeEscrow {
         minDeadlineBuffer = newBuffer;
     }
 
-    function createGoal(uint256 amount, uint64 deadline) external returns (uint256 goalId) {
+    function createGoal(uint256 amount, uint64 deadline, string calldata description) external returns (uint256 goalId) {
         require(amount > 0, "AMOUNT_ZERO");
         require(deadline > block.timestamp + minDeadlineBuffer, "DEADLINE_SOON");
+        require(bytes(description).length > 0, "DESCRIPTION_EMPTY");
 
         // Pull USDC from sender
         require(usdc.transferFrom(msg.sender, address(this), amount), "TRANSFER_FROM_FAILED");
@@ -73,11 +75,12 @@ contract GoalPledgeEscrow {
             deadline: deadline,
             completed: false,
             createdAt: uint64(block.timestamp),
-            claimed: false
+            claimed: false,
+            description: description
         });
         userGoalIds[msg.sender].push(goalId);
 
-        emit GoalCreated(goalId, msg.sender, amount, deadline);
+        emit GoalCreated(goalId, msg.sender, amount, deadline, description);
     }
 
     function markComplete(uint256 goalId) external {
